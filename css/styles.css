@@ -1,0 +1,9 @@
+/* CSS Document */
+
+#canvas {
+    padding-left:20px;
+}
+.degreelabel {
+    background-color:white;
+    font: 12px/170% Verdana, sans-serif;
+}
