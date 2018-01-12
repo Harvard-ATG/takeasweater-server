@@ -5,26 +5,24 @@ class WTWeatherFactory {
     function __construct( &$dbh ) {
         $this->dbh = $dbh;
     }
-    
+
     function getCurrentTemperature( $code ) {
-        $q = sprintf("SELECT zip_code FROM location WHERE code = '%s'", $code );
+        $q = sprintf("SELECT openweathermap_city_code FROM location WHERE code = '%s'", $code );
         $zip = mysql_fetch_array( mysql_query( $q, $this->dbh ) );
-        
-        
-        //get xml from google api
+
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'http://www.google.com/ig/api?weather='. $zip[0]);
+        curl_setopt($ch, CURLOPT_URL, 'http://api.openweathermap.org/data/2.5/weather?id='. $zip[0].'&units=imperial&APPID='.OPENWEATHERMAP_API_KEY);
         curl_setopt($ch, CURLOPT_HEADER, 0);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10); 
-        $result = curl_exec($ch); 
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        $result = curl_exec($ch);
         curl_close($ch);
- 
-        //parse xml (thx KomunitasWeb.com for pointers)
-        $xml      = simplexml_load_string($result);
-        $c_array  = $xml->xpath("/xml_api_reply/weather/current_conditions");
-        $current  = $c_array[0]->temp_f['data'];
-        
+
+        $data = json_decode($result, true);
+        $current = "";
+        if(isset($data) && isset($data['main'])) {
+            $current = $data['main']['temp'];
+        }
         echo $current;
     }
     
