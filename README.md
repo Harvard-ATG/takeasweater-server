@@ -7,9 +7,8 @@ Server side of the Take-A-Sweater application.
 1. Configure database settings:
 
 ```sh
-$ cp config.php.example config.php
-$ nano config.php
-$
+$ cp config.php.example config.php    # Copy example config
+$ nano config.php                     # Update database settings
 ```
 
 2. Setup and configure Apache/Nginx. 
