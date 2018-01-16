@@ -51,3 +51,9 @@ define('DB_COLLATE', '');
 /** Rounding Precision - Used for formulae */
 
 define('CONFIG_PRECISION', 2);
+
+
+/** The API Key for http://api.openweathermap.org/ */
+
+define('OPENWEATHERMAP_API_KEY', '');
+
