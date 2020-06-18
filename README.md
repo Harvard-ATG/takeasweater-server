@@ -38,6 +38,8 @@ $ docker run -p 8000:8000 \
 --name container_name image_tag
 ```
 
+Then visit http://127.0.0.1:8000
+
 ### Notes on Docker Setup
 
 - If you don't want the cron job to kick off, you can comment out those lines in 
