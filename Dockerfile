@@ -11,6 +11,6 @@ RUN mkdir /var/www/takeasweater
 
 COPY . /var/www/takeasweater/
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 CMD [ "curl -f http://127.0.0.1:80/healthcheck"]
-
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 CMD [ "curl -f http://127.0.0.1:8000/healthcheck"]
 ENTRYPOINT ["/var/www/takeasweater/docker-entrypoint.sh"]
