@@ -1,0 +1,9 @@
+
+[program:cron]
+priority = 100
+command = cron -f -L 15
+startsecs = 0
+autorestart = true
+redirect_stderr = true
+stdout_logfile = /var/log/cron
+stdout_events_enabled = true

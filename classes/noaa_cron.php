@@ -85,7 +85,8 @@ if( $result ) {
     }
 }
 
-
+echo $now . ": ran OK";
+echo "<br>";
 
 // error_log( "Locations: " . var_export($locations, 1) );
 ?>
