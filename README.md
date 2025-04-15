@@ -9,7 +9,7 @@ Server side of the Take-A-Sweater application.
 Start the application:
 
 ```
-$ docker compose up
+docker compose up
 ```
 
 Setup the database schema:
