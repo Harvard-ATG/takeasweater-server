@@ -1,4 +1,4 @@
-/config.php
 /.idea/
 .envrc
+.env
 /deployment

@@ -1,0 +1,5 @@
+FROM alpine:latest
+COPY crontab /etc/crontabs/root
+RUN chmod 0644 /etc/crontabs/root
+RUN crontab /etc/crontabs/root
+CMD ["crond", "-f"]

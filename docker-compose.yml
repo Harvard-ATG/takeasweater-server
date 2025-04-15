@@ -1,0 +1,43 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "8000:80"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - DB_USER=takeasweater
+      - DB_PASSWORD=takeasweater
+      - DB_NAME=takeasweater
+    volumes:
+      - ./public_html:/var/www/html
+
+
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile.cron
+    environment:
+      - CRON_BASE_URL=http://web/noaa_cron.php
+
+  db:
+    image: mysql:8.4
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: takeasweater
+      MYSQL_PASSWORD: takeasweater
+      MYSQL_DATABASE: takeasweater
+    volumes:
+      - db_data:/var/lib/mysql
+
+
+volumes:
+  db_data:
