@@ -20,7 +20,7 @@ create table takeasweater.noaa_weather
     id                    int unsigned auto_increment
         primary key,
     location_code         varchar(50)  null,
-    time_retrieved        datetime     not null,
+    time_retrieved        datetime     null,
     forecast_create_date  date         null,
     forecast_for_date     date         null,
     forecast_days_out     int          null,

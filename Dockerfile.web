@@ -11,7 +11,9 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY src /var/www/
+RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli
+
+COPY src /var/www/src/
 COPY public_html/ /var/www/html/
 
 EXPOSE 8000
