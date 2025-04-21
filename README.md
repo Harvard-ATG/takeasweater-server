@@ -12,20 +12,14 @@ Start the application:
 docker compose up
 ```
 
-Setup the database schema:
-
-```
-cat src/database/schema.sql | docker compose exec -T db mysql -uroot -proot takeasweater
-```
-
 Then visit http://localhost:8000
 
 ###  Connecting to the database
 
-To connect to the database:
+If you are using the `docker-compose.yml`, port 3306 is exposed by default so you can connect to it using the MySQL client of your choice.
+
+Alternatively, you can connect using `docker compose` like this:
 
 ```
 docker compose exec db mysql -uroot -proot takeasweater
 ```
-
-Or use your preferred MySQL client to connect .

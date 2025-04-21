@@ -26,7 +26,9 @@ services:
       - CRON_BASE_URL=http://web/noaa_cron.php
 
   db:
-    image: mysql:8.4
+    build:
+      context: .
+      dockerfile: Dockerfile.mysql
     restart: always
     ports:
       - "3306:3306"
@@ -36,6 +38,10 @@ services:
       MYSQL_PASSWORD: takeasweater
       MYSQL_DATABASE: takeasweater
     volumes:
+      - ./db/init_data:/docker-entrypoint-initdb.d/init_data
+      - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./db/02_prepare_csv_data.sh:/docker-entrypoint-initdb.d/02_prepare_csv_data.sh
+      - ./db/03_load_csv_data.sql:/docker-entrypoint-initdb.d/03_load_csv_data.sql
       - db_data:/var/lib/mysql
 
 
