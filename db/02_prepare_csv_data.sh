@@ -1,2 +1,3 @@
 #!/bin/bash -ex
-unzip init_data/snapshot.zip
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+unzip -d $SCRIPT_DIR/init_data $SCRIPT_DIR/init_data/snapshot.zip

@@ -37,6 +37,7 @@ services:
       MYSQL_USER: takeasweater
       MYSQL_PASSWORD: takeasweater
       MYSQL_DATABASE: takeasweater
+      MYSQLD_OPTS: --secure-file-priv="/docker-entrypoint-initdb.d"
     volumes:
       - ./db/init_data:/docker-entrypoint-initdb.d/init_data
       - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
