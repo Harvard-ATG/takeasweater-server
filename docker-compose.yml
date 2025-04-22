@@ -16,6 +16,7 @@ services:
       - DB_NAME=takeasweater
     volumes:
       - ./public_html:/var/www/html
+      - ./src:/var/www/src
 
 
   cron:

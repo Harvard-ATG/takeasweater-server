@@ -13,14 +13,14 @@ if(empty($link)) {
     die('Could not connect to the server');
 }
 
-$connected = mysql_select_db(DB_NAME, $link);
+$connected = mysqli_select_db($link, DB_NAME);
 if(!$connected) {
     die('Could not connect to the database: '.DB_NAME);
 }
 
 $query = "SELECT code, lat, lon FROM  location";
 
-$result = mysql_query( $query, $link );
+$result = mysqli_query($link, $query);
 
 // It's important to have these outside the loops, so they all have the same time
 // this will cause problems for retrieving the data otherwise
@@ -28,13 +28,13 @@ $today  = date('Y-m-d');     // format: 2012-01-09
 $now    = date('Y-m-d H:i:s');
 
 
-if( $result ) {
-    while( $row = mysql_fetch_array( $result ) ) {
+if($result) {
+    while($row = mysqli_fetch_array($result)) {
         $code   = $row[0];
         $lat    = $row[1];
         $lon    = $row[2];
 
-        $data = get_highs_lows( $today, '6', 'e', '24 hourly', $lat, $lon );
+        $data = get_highs_lows($today, '6', 'e', '24 hourly', $lat, $lon);
 
         $highs = $data['data']['parameters']['temperature'][0]['value'];
         $lows  = $data['data']['parameters']['temperature'][1]['value'];
@@ -43,9 +43,9 @@ if( $result ) {
         $dates = $data['data']['time-layout'][0]['start-valid-time'];
 
         $range = range(0,5);
-        // error_log( var_export($data, 1) );
+        // error_log(var_export($data, 1));
 
-        foreach ( $range as $day ) {
+        foreach($range as $day) {
             $fc_high = $highs[$day];
             $fc_low  = $lows[$day];
             $fc_text = $text[$day]['@attributes']['weather-summary'];
@@ -58,29 +58,29 @@ if( $result ) {
                     (location_code, time_retrieved, forecast_create_date, forecast_for_date,
                      forecast_days_out, forecast_high, forecast_low, fc_text, fc_icon_url)
                  VALUES ( '%s', '%s', '%s', '%s', DATEDIFF( '%s', '%s' ), %s, %s, '%s', '%s')",
-                    mysql_real_escape_string($code), $now,
+                    mysqli_real_escape_string($link, $code), $now,
                     $today, $date, $date, $today, $fc_high, $fc_low,
-                    mysql_real_escape_string($fc_text),
-                    $fc_icon );
+                    mysqli_real_escape_string($link, $fc_text),
+                    $fc_icon);
 
-            if ( !mysql_query( $sql, $link ) ) {
-                error_log( "Location: $code ($date)"  );
-                error_log('Error: ' . mysql_error());
+            if(!mysqli_query($link, $sql)) {
+                error_log("Location: $code ($date)");
+                error_log('Error: ' . mysqli_error($link));
                 // error_log($sql);
             } else {
-                // error_log( "Location: $code ($date)"  );
+                // error_log("Location: $code ($date)");
                 // error_log("$fc_high - $fc_low - $fc_text - $fc_icon");
             }
         }
 
         // location_code, forecast_create_date, forecast_for_date, forecast_days_out, forecast_high, forecast_low, fc_text, fc_text_fog, fc_text_haze, fc_text_hot, fc_text_cold, fc_text_wind, fc_text_rain_chance, fc_text_snow_chance, fc_text_tstorm_chance, fc_text_sky_condition, fc_icon_url, fc_icon_fog, fc_icon_haze, fc_icon_hot, fc_icon_cold, fc_icon_wind, fc_icon_rain_chance, fc_icon_snow_chance, fc_icon_tstorm_chance, fc_icon_sky_condition, actual_high, actual_low, actual_precip, validity_code
 
-            // error_log( "Location: $code ($today)"  );
+            // error_log("Location: $code ($today)");
             //
-            // error_log( "Highs: " . var_export($highs, 1) );
-            // error_log( "Lows: " . var_export($lows, 1) );
-            // error_log( "Icons: " . var_export($icons, 1) );
-            // error_log( "Text: " . var_export($text, 1) );
+            // error_log("Highs: " . var_export($highs, 1));
+            // error_log("Lows: " . var_export($lows, 1));
+            // error_log("Icons: " . var_export($icons, 1));
+            // error_log("Text: " . var_export($text, 1));
 
     }
 }
@@ -88,5 +88,5 @@ if( $result ) {
 echo $now . ": ran OK";
 echo "<br>";
 
-// error_log( "Locations: " . var_export($locations, 1) );
+// error_log("Locations: " . var_export($locations, 1));
 ?>

@@ -10,23 +10,23 @@ class WTWeather {
     function __construct( $id, &$dbh ) {
 
         $this->dbh = $dbh;
-        
+
         if ( $id ){
             $query = sprintf(
-                "SELECT 
-                    id, location_code, forecast_create_date, forecast_for_date, 
-                    forecast_days_out, forecast_high, forecast_low, 
-                    fc_text, fc_text_fog, fc_text_haze, fc_text_hot, fc_text_cold, fc_text_wind, 
-                    fc_text_rain_chance, fc_text_snow_chance, fc_text_tstorm_chance, fc_text_sky_condition, 
-                    fc_icon_url, fc_icon_fog, fc_icon_haze, fc_icon_hot, fc_icon_cold, fc_icon_wind, 
-                    fc_icon_rain_chance, fc_icon_snow_chance, fc_icon_tstorm_chance, fc_icon_sky_condition, 
-                    actual_high, actual_low, actual_precip, validity_code 
-                FROM weather 
+                "SELECT
+                    id, location_code, forecast_create_date, forecast_for_date,
+                    forecast_days_out, forecast_high, forecast_low,
+                    fc_text, fc_text_fog, fc_text_haze, fc_text_hot, fc_text_cold, fc_text_wind,
+                    fc_text_rain_chance, fc_text_snow_chance, fc_text_tstorm_chance, fc_text_sky_condition,
+                    fc_icon_url, fc_icon_fog, fc_icon_haze, fc_icon_hot, fc_icon_cold, fc_icon_wind,
+                    fc_icon_rain_chance, fc_icon_snow_chance, fc_icon_tstorm_chance, fc_icon_sky_condition,
+                    actual_high, actual_low, actual_precip, validity_code
+                FROM weather
                 WHERE id = %s LIMIT 1",
                 $id);
-            $result = mysql_query( $query, $this->dbh );
+            $result = mysqli_query($this->dbh, $query);
             if($result){
-                $row = mysql_fetch_array($result);
+                $row = mysqli_fetch_array($result);
                 $this->populate($row);
             }
         }
@@ -66,7 +66,7 @@ class WTWeather {
         $this->actual_precip         = $data['actual_precip'];
         $this->validity_code         = $data['validity_code'];
     }
-    
+
     function delta_predicted_high() {
         return $this->actual_high - $this->forecast_high;
     }

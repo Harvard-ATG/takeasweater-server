@@ -36,7 +36,7 @@ if(empty($link)) {
     die('Could not connect to the server');
 }
 
-$connected = mysql_select_db(DB_NAME, $link);
+$connected = mysqli_select_db($link, DB_NAME);
 if(!$connected) {
     die('Could not connect to the database: '.DB_NAME);
 }
