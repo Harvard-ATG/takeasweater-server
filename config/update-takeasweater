@@ -1,5 +1,0 @@
-# Run every 4 hours with a 60 min random delay
-SHELL=/bin/bash
-# PATH=/sbin:/bin:/usr/sbin:/usr/bin
-RANDOM_DELAY=60
-12 */4 * * * root curl http://localhost/classes/noaa_cron.php >> /var/www/takeasweater/cron_output.html

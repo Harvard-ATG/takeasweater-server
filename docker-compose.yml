@@ -1,0 +1,54 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "8000:80"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - DB_USER=takeasweater
+      - DB_PASSWORD=takeasweater
+      - DB_NAME=takeasweater
+    volumes:
+      - ./public_html:/var/www/html
+      - ./src:/var/www/src
+
+
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile.cron
+      args:
+        ENV: dev
+    environment:
+      - TAKEASWEATER_URL=http://web
+    depends_on:
+      - web
+
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: takeasweater
+      MYSQL_PASSWORD: takeasweater
+      MYSQL_DATABASE: takeasweater
+    volumes:
+      - ./db/init_data:/docker-entrypoint-initdb.d/init_data
+      - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./db/02_prepare_csv_data.sh:/docker-entrypoint-initdb.d/02_prepare_csv_data.sh
+      - ./db/03_load_csv_data.sql:/docker-entrypoint-initdb.d/03_load_csv_data.sql
+      - db_data:/var/lib/mysql
+    command: --secure-file-priv="/docker-entrypoint-initdb.d"
+
+volumes:
+  db_data:
