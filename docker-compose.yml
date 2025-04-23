@@ -23,10 +23,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.cron
+      args:
+        ENV: dev
+    environment:
+      - TAKEASWEATER_URL=http://web
     depends_on:
       - web
-    environment:
-      - CRON_BASE_URL=http://web/noaa_cron.php
 
   db:
     build:
@@ -47,7 +49,6 @@ services:
       - ./db/03_load_csv_data.sql:/docker-entrypoint-initdb.d/03_load_csv_data.sql
       - db_data:/var/lib/mysql
     command: --secure-file-priv="/docker-entrypoint-initdb.d"
-
 
 volumes:
   db_data:

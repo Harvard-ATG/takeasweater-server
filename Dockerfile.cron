@@ -1,5 +1,8 @@
 FROM alpine:latest
-COPY crontab /etc/crontabs/root
+ARG ENV=prod
+COPY cron/crontab.${ENV} /etc/crontabs/root
+COPY cron/takeasweater.sh /takeasweater.sh
+RUN apk update && apk add bash && apk add curl
 RUN chmod 0644 /etc/crontabs/root
 RUN crontab /etc/crontabs/root
-CMD ["crond", "-f"]
+CMD ["crond","-f", "-L", "/dev/stdout"]

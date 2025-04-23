@@ -2,4 +2,4 @@
 SHELL=/bin/bash
 # PATH=/sbin:/bin:/usr/sbin:/usr/bin
 RANDOM_DELAY=60
-12 */4 * * * root curl ${CRON_BASE_URL}/noaa_cron.php
+12 */4 * * * /takeasweater.sh
