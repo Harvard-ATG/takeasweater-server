@@ -1,6 +1,6 @@
 # takeasweater-server
 
-Server side of the Take-A-Sweater application, a service that provides weather data and clothing recommendations based on current and forecasted conditions.
+Server side of the Take-A-Sweater application, a service that provides weather data and predictions based on current and forecasted conditions.
 
 ## Overview
 
