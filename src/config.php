@@ -31,3 +31,6 @@ define('CONFIG_PRECISION', getenv('CONFIG_PRECISION') ? getenv('CONFIG_PRECISION
 
 // See also: http://api.openweathermap.org/
 define('OPENWEATHERMAP_API_KEY', getenv('OPENWEATHERMAP_API_KEY') ? getenv('OPENWEATHERMAP_API_KEY') : '');
+
+/** Used to authorize requests to noaa_cron.php */
+define('TAKEASWEATER_CRON_SECRET', getenv('TAKEASWEATER_CRON_SECRET') ? getenv('TAKEASWEATER_CRON_SECRET') : '');
