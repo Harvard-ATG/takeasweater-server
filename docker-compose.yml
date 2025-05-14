@@ -14,6 +14,7 @@ services:
       - DB_USER=takeasweater
       - DB_PASSWORD=takeasweater
       - DB_NAME=takeasweater
+      - TAKEASWEATER_CRON_SECRET=${TAKEASWEATER_CRON_SECRET:-cronSecret123}
     volumes:
       - ./public_html:/var/www/html
       - ./src:/var/www/src
@@ -25,8 +26,11 @@ services:
       dockerfile: Dockerfile.cron
       args:
         ENV: dev
+    env_file:
+      - .env
     environment:
       - TAKEASWEATER_URL=http://web
+      - TAKEASWEATER_CRON_SECRET=${TAKEASWEATER_CRON_SECRET:-cronSecret123}
     depends_on:
       - web
 

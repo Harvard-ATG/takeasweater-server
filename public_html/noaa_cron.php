@@ -5,6 +5,17 @@ require_once('../src/config.php');
 require_once('../src/classes/db.php');
 require_once('../src/classes/ndfdSOAPclientByDay.php');
 
+$http_authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+$token = "";
+if (preg_match('/Bearer\s(\S+)/', $http_authorization, $matches)) {
+    $token = $matches[1];
+}
+if(empty($token) || $token != TAKEASWEATER_CRON_SECRET) {
+    header('HTTP/1.0 401 Unauthorized');
+    echo "Unauthorized.";
+    exit;
+}
+
 $webpage = new WTWebpage();
 
 $link = $webpage->getDbh();
