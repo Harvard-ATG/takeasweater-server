@@ -3,7 +3,8 @@ require_once('../src/config.php');
 require_once('../src/classes/db.php');
 require_once('../src/classes/weather.php');
 require_once('../src/classes/weather_factory.php');
-require_once('../src/classes/ndfdSOAPclientByDay.php');
+// require_once('../src/classes/ndfdSOAPclientByDay.php'); // Old SOAP client, likely not needed
+require_once('../src/classes/NoaaRestClient.php'); // Ensure this is here if factory uses it, though factory seems to use db directly for this part
 
 $function     = isset( $_GET['f']  )     ? $_GET['f']  : 'foobar';
 $screenWidth  = isset( $_GET['width']  ) ? $_GET['width']  : '450';
@@ -45,15 +46,25 @@ if(!$connected) {
 $factory = new WTWeatherFactory($link);
 
 if ( $function == 'current' ) {
-    return $factory->getCurrentTemperature( $location_code );
+    // This function in WTWeatherFactory uses OpenWeatherMap, which is different from NOAA.
+    // For now, let's assume it's okay, or decide if it needs to be harmonized later.
+    // It echoes directly, so no further processing here.
+    $factory->getCurrentTemperature( $location_code );
+    exit;
+
+} else if ( $function == 'getDateRange') { // New endpoint
+    header('Content-Type: application/json');
+    $dateLimits = $factory->fetchAvailableDateRange( $location_code );
+    echo json_encode($dateLimits);
+    exit;
 
 } else if ( $function == 'Download Results') {
 
     $filename = $location_code . '_' . $selected_date;
     $cvs = array();
     $predictedTemps = $factory->getPredictedTemps( $location_code, $selected_date, $current );
-    $predictedHighs = $predictedTemps["highs"];
-    $predictedLows = $predictedTemps["lows"];
+    $predictedHighs = isset($predictedTemps["highs"]) ? $predictedTemps["highs"] : [];
+    $predictedLows = isset($predictedTemps["lows"]) ? $predictedTemps["lows"] : [];
 
     $head = ('location_code,search_field,high_low,ref_forecast_temp,temp_tolerance,date_tolerance,forecast_create_date,' .
              'forecast_for_date,forecast_days_out,forecast_high,forecast_low,actual_high,actual_low,actual_precip,' .
@@ -65,8 +76,10 @@ if ( $function == 'current' ) {
 
 
     foreach ( $dateRange as $days_out ) {
-        array_push( $cvs, $factory->getCVSOutput( $location_code, 'forecast_high', $selected_date, $predictedHighs[$days_out], $days_out, $temp_tolerance, $date_tolerance ) );
-        array_push( $cvs, $factory->getCVSOutput( $location_code, 'forecast_low', $selected_date, $predictedLows[$days_out], $days_out, $temp_tolerance, $date_tolerance ) );
+        if (isset($predictedHighs[$days_out]) && isset($predictedLows[$days_out])) {
+            array_push( $cvs, $factory->getCVSOutput( $location_code, 'forecast_high', $selected_date, $predictedHighs[$days_out], $days_out, $temp_tolerance, $date_tolerance ) );
+            array_push( $cvs, $factory->getCVSOutput( $location_code, 'forecast_low', $selected_date, $predictedLows[$days_out], $days_out, $temp_tolerance, $date_tolerance ) );
+        }
     }
 
     header("Content-type: text/csv");
@@ -76,106 +89,92 @@ if ( $function == 'current' ) {
 
     print implode($cvs);
     // exit(0);
-} else {
+} else if ($function == 'weather') { // Default case for fetching weather for graph
 
-    $results = array();
-    $errors = array();
-    $fields = array();
-    $nopost = TRUE;
-    $daysOutArray           = range(1,5);
-    $temperatureRangeArray  = range(-20,100);
-
-
-    // $availableSearchFieldsArray = $factory->fetchAvailableSearchFields();
-    $availableDateRangeArray = $factory->fetchAvailableDateRange( $location_code );
-
-
-    // error_log( "Predicted Temps Returned: " . var_export($predictedTemps, 1) );
-
-    // NOAA forecasts stored locally
     $predictedTemps = $factory->getPredictedTemps( $location_code, $selected_date, $current );
 
-    $predictedHighs = $predictedTemps["highs"];
-    $predictedLows = $predictedTemps["lows"];
-
+    $predictedHighs = isset($predictedTemps["highs"]) ? $predictedTemps["highs"] : [];
+    $predictedLows = isset($predictedTemps["lows"]) ? $predictedTemps["lows"] : [];
+    $predictedIcons = isset($predictedTemps["icons"]) ? $predictedTemps["icons"] : [];
+    $predictedTexts = isset($predictedTemps["text"]) ? $predictedTemps["text"] : [];
 
     $data = array();
     $highestHigh = -100;
     $lowestLow   = 150;
 
-    foreach ( $dateRange as $days_out ) {
-        $histogram_highs = array();
-        $histogram_lows = array();
-        $highsArray = $factory->fetchForecastsDaysOut(
-                                    $location_code, 'forecast_high',
-                                    $selected_date,
-                                    $predictedHighs[$days_out], $days_out,
-                                    $temp_tolerance, $date_tolerance );
+    // Ensure $dateRange aligns with the number of days fetched by getPredictedTemps (6 days, index 0-5)
+    foreach ( $dateRange as $days_out ) {  // $dateRange is range(0,5)
+        if (!isset($predictedHighs[$days_out]) || !isset($predictedLows[$days_out])) {
+            // If data for a specific days_out is missing, provide defaults or skip
+            // This helps prevent errors if getPredictedTemps returns fewer than 6 days
+            $data["$days_out"]["predicted_high"]   = null; // Or some default, e.g., 'N/A'
+            $data["$days_out"]["predicted_low"]    = null;
+            $data["$days_out"]["icon"]             = 'images/few.png'; // Default icon
+            $data["$days_out"]["text"]             = 'No data';
+        } else {
+            $histogram_highs = array();
+            $histogram_lows = array();
+            // The fetchForecastsDaysOut is for historical comparison, uses old 'weather' table.
+            // This part needs careful review if it's still a core feature.
+            // For now, let's assume it might fetch from an empty table or needs update.
+            $highsArray = $factory->fetchForecastsDaysOut( 
+                                        $location_code, 'forecast_high', 
+                                        $selected_date, 
+                                        $predictedHighs[$days_out], $days_out, 
+                                        $temp_tolerance, $date_tolerance );
 
-        foreach ( $highsArray as $item ) {
-            // increment and supress errors thankyou @ sign
-            @$histogram_highs[$item->delta_predicted_high()]++;
+            foreach ( $highsArray as $item ) {
+                @$histogram_highs[$item->delta_predicted_high()]++;
+            }
+
+            $lowsArray  = $factory->fetchForecastsDaysOut( 
+                                        $location_code, 'forecast_low', 
+                                        $selected_date, 
+                                        $predictedLows[$days_out], $days_out, 
+                                        $temp_tolerance, $date_tolerance );
+
+            foreach ( $lowsArray as $item ) {
+                @$histogram_lows[$item->delta_predicted_low()]++;
+            }
+
+            krsort($histogram_highs,SORT_NUMERIC);
+            krsort($histogram_lows, SORT_NUMERIC);
+
+            $hh = array_keys($histogram_highs);
+            $ll = array_keys($histogram_lows);
+
+            if ( $highestHigh < @$predictedHighs[$days_out] + @$hh[0] ) {
+                $highestHigh = @$predictedHighs[$days_out] + @$hh[0];
+            }
+            if ( $lowestLow > @$predictedHighs[$days_out] + @$hh[count($hh)-1] ) {
+                $lowestLow = @$predictedHighs[$days_out] + @$hh[count($hh)-1];
+            }
+            if ( $highestHigh < @$predictedLows[$days_out] + @$ll[0] ) {
+                $highestHigh = @$predictedLows[$days_out] + @$ll[0];
+            }
+            if ( $lowestLow > @$predictedLows[$days_out] + @$ll[count($ll)-1] ) {
+                $lowestLow = @$predictedLows[$days_out] + @$ll[count($ll)-1];
+            }
+
+            $data["$days_out"]["predicted_high"]   = $predictedHighs[$days_out];
+            $data["$days_out"]["predicted_low"]    = $predictedLows[$days_out];
+            $data["$days_out"]["icon"]             = $predictedIcons[$days_out]; // Corrected icon path
+            $data["$days_out"]["text"]             = $predictedTexts[$days_out];
+            $data["$days_out"]["histogram_lows"]   = $histogram_lows;
+            $data["$days_out"]["histogram_highs"]  = $histogram_highs;
         }
-
-        $lowsArray  = $factory->fetchForecastsDaysOut(
-                                    $location_code, 'forecast_low',
-                                    $selected_date,
-                                    $predictedLows[$days_out], $days_out,
-                                    $temp_tolerance, $date_tolerance );
-
-        foreach ( $lowsArray as $item ) {
-            // increment and supress errors thankyou @ sign
-            @$histogram_lows[$item->delta_predicted_low()]++;
-        }
-
-        krsort($histogram_highs,SORT_NUMERIC);
-        krsort($histogram_lows, SORT_NUMERIC);
-
-        $hh = array_keys($histogram_highs);
-        $ll = array_keys($histogram_lows);
-
-        // error_log("Foobar: " .var_export($hh, 1));
-
-        // the @ signs are surpressing annoying errors
-        if ( $highestHigh < @$predictedHighs[$days_out] + @$hh[0] ) {
-            $highestHigh = @$predictedHighs[$days_out] + @$hh[0];
-        }
-        if ( $lowestLow > @$predictedHighs[$days_out] + @$hh[count($hh)-1] ) {
-            $lowestLow = @$predictedHighs[$days_out] + @$hh[count($hh)-1];
-        }
-        if ( $highestHigh < @$predictedLows[$days_out] + @$ll[0] ) {
-            $highestHigh = @$predictedLows[$days_out] + @$ll[0];
-        }
-        if ( $lowestLow > @$predictedLows[$days_out] + @$ll[count($ll)-1] ) {
-            $lowestLow = @$predictedLows[$days_out] + @$ll[count($ll)-1];
-        }
-
-
-        $icon = preg_replace('/^.*\//', '', $predictedTemps['icons'][$days_out]);
-        $icon = preg_replace('/\d*\.jpg/',  '.png', $icon);
-
+        
         $mydate = explode('-', $selected_date );
-        // error_log(var_export($mydate,1));
-        $data["$days_out"]["predicted_high"]   = $predictedHighs[$days_out];
-        $data["$days_out"]["predicted_low"]    = $predictedLows[$days_out];
-        $data["$days_out"]["icon"]             = 'images/' . $icon;
-        // $data["$days_out"]["day_of_week"]      = date('D', mktime(0, 0, 0, date("m"), date("d") + $days_out, date("Y")));
-        // $data["$days_out"]["month"]            = date('M', mktime(0, 0, 0, date("m"), date("d") + $days_out, date("Y")));
-        // $data["$days_out"]["date"]             = date('j', mktime(0, 0, 0, date("m"), date("d") + $days_out, date("Y")));
         $data["$days_out"]["day_of_week"]      = date('D', mktime(0, 0, 0, $mydate[1], $mydate[2] + $days_out, $mydate[0]));
         $data["$days_out"]["month"]            = date('M', mktime(0, 0, 0, $mydate[1], $mydate[2] + $days_out, $mydate[0]));
         $data["$days_out"]["date"]             = date('j', mktime(0, 0, 0, $mydate[1], $mydate[2] + $days_out, $mydate[0]));
-        $data["$days_out"]["text"]             = $predictedTemps['text'][$days_out];
-        $data["$days_out"]["histogram_lows"]   = $histogram_lows;
-        $data["$days_out"]["histogram_highs"]  = $histogram_highs;
-        // error_log( "Histogram Lows: " . var_export ($histogram_lows, 1) );
-        // error_log( "Histogram Highs: " . var_export ($histogram_highs, 1) );
     }
     $data['highest_high'] = $highestHigh;
     $data['lowest_low']   = $lowestLow;
-
-
-    echo json_encode($data);
+    
+    header('Content-Type: application/json');
+    echo json_encode($data);  
+    exit;                  
 }
 
 
