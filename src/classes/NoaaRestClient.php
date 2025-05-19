@@ -22,6 +22,43 @@ class NoaaRestClient {
     }
     
     /**
+     * Log debug information if debug mode is enabled
+     * 
+     * @param string $message The message to log
+     * @param mixed $data Optional data to include in the log
+     */
+    private function debugLog($message, $data = null) {
+        if (!defined('DEBUG_MODE') || !DEBUG_MODE) {
+            return;
+        }
+        
+        error_log($message);
+        
+        if ($data !== null) {
+            if (is_string($data) || is_numeric($data)) {
+                error_log($data);
+            } else {
+                error_log(print_r($data, true));
+            }
+        }
+    }
+    
+    /**
+     * Save debug data to a file if debug mode is enabled
+     * 
+     * @param string $filePath The path to save the file
+     * @param mixed $data The data to save
+     */
+    private function debugSave($filePath, $data) {
+        if (!defined('DEBUG_MODE') || !DEBUG_MODE) {
+            return;
+        }
+        
+        file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
+        $this->debugLog("Debug data saved to $filePath");
+    }
+    
+    /**
      * Get high and low temperatures for the given location and date range
      * 
      * @param string $startDate The start date in YYYY-MM-DD format
@@ -37,35 +74,29 @@ class NoaaRestClient {
             // Step 1: Get grid point information for this location
             $gridInfo = $this->getPointMetadata($lat, $lon);
             if (!$gridInfo) {
-                error_log("Failed to get grid information for location ($lat, $lon)");
+                $this->debugLog("Failed to get grid information for location ($lat, $lon)");
                 return false;
             }
             
             // Step 2: Get the forecast data using the grid information
             $forecastData = $this->getForecast($gridInfo['gridId'], $gridInfo['gridX'], $gridInfo['gridY']);
             if (!$forecastData) {
-                error_log("Failed to get forecast data for grid: {$gridInfo['gridId']}/{$gridInfo['gridX']},{$gridInfo['gridY']}");
+                $this->debugLog("Failed to get forecast data for grid: {$gridInfo['gridId']}/{$gridInfo['gridX']},{$gridInfo['gridY']}");
                 return false;
             }
             
-            /////////////////// DEBUG ///////////////////
-            // Add debug output to see raw API data
-            file_put_contents('/tmp/api_raw_data.json', json_encode($forecastData, JSON_PRETTY_PRINT));
-            error_log("Raw API data saved to /tmp/api_raw_data.json");
-            /////////////////// DEBUG ///////////////////
+            // Debug: Save raw API data
+            $this->debugSave('/tmp/api_raw_data.json', $forecastData);
             
             // Step 3: Transform the data to the expected format
             $result = $this->transformForecastData($forecastData, $numDays);
             
-            /////////////////// DEBUG ///////////////////
-            // Add debug output to see transformed data
-            file_put_contents('/tmp/api_transformed_data.json', json_encode($result, JSON_PRETTY_PRINT));
-            error_log("Transformed data saved to /tmp/api_transformed_data.json");
-            /////////////////// DEBUG ///////////////////
+            // Debug: Save transformed data
+            $this->debugSave('/tmp/api_transformed_data.json', $result);
             
             return $result;
         } catch (Exception $e) {
-            error_log("Error in get_highs_lows: " . $e->getMessage());
+            $this->debugLog("Error in get_highs_lows: " . $e->getMessage());
             return false;
         }
     }
@@ -98,7 +129,7 @@ class NoaaRestClient {
         
         $data = json_decode($response, true);
         if (!isset($data['properties'])) {
-            error_log("Invalid point metadata response: " . print_r($data, true));
+            $this->debugLog("Invalid point metadata response", $data);
             return false;
         }
         
@@ -111,11 +142,8 @@ class NoaaRestClient {
             'forecastHourlyUrl' => $data['properties']['forecastHourly']
         ];
         
-        /////////////////// DEBUG ///////////////////
-        // // Output grid point information 
-        // file_put_contents($this->cacheDir . "/grid_info_{$lat}_{$lon}.json", json_encode($metadata, JSON_PRETTY_PRINT));
-        // error_log("Grid point information for ($lat,$lon) saved to {$this->cacheDir}/grid_info_{$lat}_{$lon}.json");
-        /////////////////// DEBUG ///////////////////
+        // Debug: Save grid point information
+        $this->debugSave($this->cacheDir . "/grid_info_{$lat}_{$lon}.json", $metadata);
         
         // Cache the metadata
         file_put_contents($cacheFile, json_encode($metadata));
@@ -139,11 +167,8 @@ class NoaaRestClient {
             return false;
         }
         
-        /////////////////// DEBUG ///////////////////
-        // // Save raw forecast response
-        // file_put_contents($this->cacheDir . "/forecast_{$gridId}_{$gridX}_{$gridY}.json", $response);
-        // error_log("Raw forecast for {$gridId}/{$gridX},{$gridY} saved to {$this->cacheDir}/forecast_{$gridId}_{$gridX}_{$gridY}.json");
-        /////////////////// DEBUG ///////////////////
+        // Debug: Save raw forecast response
+        $this->debugSave($this->cacheDir . "/forecast_{$gridId}_{$gridX}_{$gridY}.json", json_decode($response, true));
         
         return json_decode($response, true);
     }
@@ -261,9 +286,7 @@ class NoaaRestClient {
      * @return string|false The response body or false on failure
      */
     private function makeApiRequest($url) {
-        /////////////////// DEBUG ///////////////////
-        // error_log("Making API request to: $url");
-        /////////////////// DEBUG ///////////////////
+        $this->debugLog("Making API request to: $url");
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -280,16 +303,16 @@ class NoaaRestClient {
         curl_close($ch);
         
         if ($httpCode != 200) {
-            error_log("API request failed: $url, HTTP code: $httpCode, Error: $error");
-            error_log("Response: $response");
+            $this->debugLog("API request failed: $url, HTTP code: $httpCode, Error: $error");
+            $this->debugLog("Response: $response");
             return false;
         }
         
-        /////////////////// DEBUG ///////////////////
-        // error_log("API request successful: $url (HTTP $httpCode)");
-        // // Uncomment to see full API responses
-        // // error_log("Response: " . substr($response, 0, 500) . "...");
-        /////////////////// DEBUG ///////////////////
+        $this->debugLog("API request successful: $url (HTTP $httpCode)");
+        if (defined('DEBUG_MODE') && DEBUG_MODE) {
+            // Truncate response for logs to avoid overwhelming them
+            $this->debugLog("Response preview: " . substr($response, 0, 500) . "...");
+        }
         
         return $response;
     }

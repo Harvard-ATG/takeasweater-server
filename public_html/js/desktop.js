@@ -15,9 +15,35 @@ function jQueryReady() {
     $('#weather_search').append('<p><input type="submit" id="downloaddata" name="f" value="Download Results"  /></p>\
                                  <p><a href="https://docs.google.com/document/d/1qsTglCP5s9bkcGlonW9wsdsUwOEZPSswZEfTbqT1lV4/edit" \
                                     rel="external" target="_blank">Explanation of the Download File</a>.</p>');
+    
+    // Add change event to location dropdown
+    $('#location_code').change(function() {
+        // When city changes, reload date range and weather data
+        reloadDateRangeAndWeather();
+    });
 
+    // Initial load of date range and weather data
+    reloadDateRangeAndWeather();
+
+    // $(".collapsible_header").click(function() {
+    //      $(this).next(".collapsible_content").slideToggle('slow');
+    //   });
+
+    // http://www.stevefenton.co.uk/Content/Jquery-Side-Content/
+   $(".side").sidecontent({
+        classmodifier: "sidecontent",
+        attachto: "rightside",
+        width: "400px",
+        opacity: "0.8",
+        pulloutpadding: "30",
+        textdirection: "vertical"
+    });
+}
+
+// Function to reload date range and weather data
+function reloadDateRangeAndWeather() {
     // Fetch dynamic date range first, then initialize datepicker and load graph
-    var params = $.param( $("#weather_search").serializeArray() ); // Get location_code for the date range query
+    var params = $.param($("#weather_search").serializeArray()); // Get location_code for the date range query
     $.getJSON('index_controller.php', params + "&f=getDateRange", function(dateLimits) {
         var minDate = dateLimits.min_date ? new Date(dateLimits.min_date.replace(/-/g, '/')) : new Date(2005, 0, 1); // Fallback min
         var maxDate = dateLimits.max_date ? new Date(dateLimits.max_date.replace(/-/g, '/')) : new Date(); // Fallback max (today)
@@ -28,20 +54,27 @@ function jQueryReady() {
             maxDate = today;
         }
 
-        // Initialize datepicker with dynamic dates
-        $( "#datepicker" ).datepicker({
-            changeMonth: true,
-            changeYear: true,
-            showOn: "button",
-            buttonImage: "images/calendar.gif",
-            buttonImageOnly: true,
-            dateFormat: 'yy-mm-dd',
-            minDate: minDate,
-            maxDate: maxDate,
-            onSelect: function(dateText, inst) {
-                loadWeatherGraph();
-            }
-        });
+        // Initialize or update datepicker with dynamic dates
+        if ($("#datepicker").hasClass("hasDatepicker")) {
+            // Datepicker already initialized, just update options
+            $("#datepicker").datepicker("option", "minDate", minDate);
+            $("#datepicker").datepicker("option", "maxDate", maxDate);
+        } else {
+            // Initialize datepicker for the first time
+            $("#datepicker").datepicker({
+                changeMonth: true,
+                changeYear: true,
+                showOn: "button",
+                buttonImage: "images/calendar.gif",
+                buttonImageOnly: true,
+                dateFormat: 'yy-mm-dd',
+                minDate: minDate,
+                maxDate: maxDate,
+                onSelect: function(dateText, inst) {
+                    loadWeatherGraph();
+                }
+            });
+        }
 
         // Set initial date for the datepicker to the most recent date with data, or today
         var initialDate = dateLimits.max_date ? new Date(dateLimits.max_date.replace(/-/g, '/')) : new Date();
@@ -106,23 +139,7 @@ function jQueryReady() {
         $("#datepicker").datepicker("setDate", new Date());
         loadWeatherGraph(); // Try to load graph even if date range fetch failed
     });
-
-    // $(".collapsible_header").click(function() {
-    //      $(this).next(".collapsible_content").slideToggle('slow');
-    //   });
-
-    // http://www.stevefenton.co.uk/Content/Jquery-Side-Content/
-   $(".side").sidecontent({
-        classmodifier: "sidecontent",
-        attachto: "rightside",
-        width: "400px",
-        opacity: "0.8",
-        pulloutpadding: "30",
-        textdirection: "vertical"
-    });
-
 }
-
 
 function showHistogram( day, highlow ) {
     $('#histogram').show();
@@ -132,5 +149,4 @@ function showHistogram( day, highlow ) {
 
 $(document).ready(function(){
     jQueryReady();
-    loadWeatherGraph();
 });
