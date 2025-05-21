@@ -32,5 +32,14 @@ define('CONFIG_PRECISION', getenv('CONFIG_PRECISION') ? getenv('CONFIG_PRECISION
 // See also: http://api.openweathermap.org/
 define('OPENWEATHERMAP_API_KEY', getenv('OPENWEATHERMAP_API_KEY') ? getenv('OPENWEATHERMAP_API_KEY') : '');
 
+
+/* -------------------------------------------------------------------------- */
+/*                            Application Settings                            */
+/* -------------------------------------------------------------------------- */
+
+/** Enable or disable debug mode (disabled by default) */
+define('DEBUG_MODE', getenv('DEBUG_MODE') ? getenv('DEBUG_MODE') : false);
+// define('DEBUG_MODE', true);
+
 /** Used to authorize requests to noaa_cron.php */
 define('TAKEASWEATER_CRON_SECRET', getenv('TAKEASWEATER_CRON_SECRET') ? getenv('TAKEASWEATER_CRON_SECRET') : '');

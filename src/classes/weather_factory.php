@@ -128,24 +128,34 @@ class WTWeatherFactory {
     // get NOAA Weather forecast stored in database by noaa_cron.php
     // This query should get the latest saved forecast data. I have the cron run every few hours and we just need the lates
     function getPredictedTemps( $location_code, $forecast_create_date, $current ) {
-        error_log( $current );
+        error_log( "getPredictedTemps called with date: $forecast_create_date, current: " . ($current ? 'true' : 'false') );
 
         if ( $current ) {
-            $query =  "SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url
+            // When $current is true, fetch the latest forecast for today and the next few days
+            $query = sprintf("SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url
                          FROM noaa_weather as nw
-                        WHERE nw.time_retrieved = ( SELECT MAX(nw2.time_retrieved) FROM noaa_weather AS nw2 WHERE nw2.location_code = 'BOSTONMA' )
-                          AND nw.location_code = 'BOSTONMA'
-                     GROUP BY nw.forecast_days_out, nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url";
+                        WHERE nw.forecast_create_date = ( SELECT MAX(nw2.forecast_create_date) FROM noaa_weather AS nw2 WHERE nw2.location_code = '%s' )
+                          AND nw.location_code = '%s'
+                     ORDER BY nw.forecast_days_out ASC
+                     LIMIT 6", $location_code, $location_code);
         } else {
-            $query =  "SELECT forecast_high, forecast_low, fc_text, fc_icon_url
-                         FROM weather_modified
-                        WHERE forecast_create_date = '$forecast_create_date'
-                          AND location_code = 'BOSTONMA'";
+            // When a date is selected from datepicker, fetch the forecast that was created on that specific date
+            $query = sprintf("SELECT forecast_high, forecast_low, fc_text, fc_icon_url
+                         FROM noaa_weather  -- Corrected table
+                        WHERE forecast_create_date = '%s'
+                          AND location_code = '%s'
+                     ORDER BY forecast_days_out ASC
+                     LIMIT 6", $forecast_create_date, $location_code);
         }
 
-        // error_log( $query);
+        error_log( "Query: " . $query);
 
-        $data = array();
+        $data = array(
+            'highs' => [],
+            'lows' => [],
+            'text' => [],
+            'icons' => []
+        );
         $result = mysqli_query($this->dbh, $query);
 
         if($result) {
@@ -155,8 +165,10 @@ class WTWeatherFactory {
                 $data['text'][]  = $row[2];
                 $data['icons'][] = $row[3];
             }
+        } else {
+            error_log("Query failed: " . mysqli_error($this->dbh));
         }
-        // error_log( "Predicted Temps: " . var_export($data, 1) );
+        error_log( "Predicted Temps Returned: " . var_export($data, 1) );
         return $data;
     }
 
@@ -195,17 +207,28 @@ class WTWeatherFactory {
 
     function fetchAvailableDateRange( $location_code ) {
         $query = sprintf(
-          "SELECT MIN(forecast_create_date), MAX(forecast_create_date)
-           FROM weather
+          "SELECT MIN(forecast_create_date) as min_date, MAX(forecast_create_date) as max_date
+           FROM noaa_weather -- Corrected table
            WHERE location_code = '%s'",
             $location_code );
 
-        // error_log($query);
-
-        $entry  = array();
-        $result = mysqli_query($this->dbh, $query);
-        $dates  = mysqli_fetch_array($result);
-        return $dates;
+        error_log("fetchAvailableDateRange Query: " . $query);
+        
+        $entry  = array('min_date' => null, 'max_date' => null);
+        $result = mysqli_query( $this->dbh, $query );
+        if ($result) {
+            $dates  = mysqli_fetch_assoc( $result );
+            $entry['min_date'] = $dates['min_date'];
+            // Max date should always be today for the datepicker if we are showing current forecasts
+            // However, for consistency with historical data, using MAX from db might be intended by original design
+            // For now, let's use MAX from db, can be changed to date('Y-m-d') if needed.
+            $entry['max_date'] = $dates['max_date'] ? $dates['max_date'] : date('Y-m-d'); 
+        } else {
+             error_log("fetchAvailableDateRange Query failed: " . mysqli_error($this->dbh));
+             $entry['max_date'] = date('Y-m-d'); // Fallback max date
+        }
+        error_log("fetchAvailableDateRange Result: " . var_export($entry, 1));
+        return $entry;
     }
 }
 
