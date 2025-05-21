@@ -17,6 +17,14 @@ RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli
 # Use the default production configuration that ships with the docker image
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
+# Make the HTTP Authorization header available to PHP
+RUN { \
+    echo '<Directory /var/www/html>'; \
+    echo '  SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1'; \
+    echo '</Directory>'; \
+} > /etc/apache2/conf-available/pass-authorization.conf \
+    && a2enconf pass-authorization
+
 COPY src /var/www/src/
 COPY public_html/ /var/www/html/
 

@@ -1,2 +1,2 @@
 #!/bin/bash -ex
-curl ${TAKEASWEATER_URL}/noaa_cron.php
+curl -H "Authorization: Bearer ${TAKEASWEATER_CRON_SECRET}" ${TAKEASWEATER_URL}/noaa_cron.php

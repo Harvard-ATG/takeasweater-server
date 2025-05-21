@@ -25,6 +25,17 @@ function debug_output($message, $data = null, $filename = null) {
     }
 }
 
+$http_authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+$token = "";
+if (preg_match('/Bearer\s(\S+)/', $http_authorization, $matches)) {
+    $token = $matches[1];
+}
+if(empty($token) || $token != TAKEASWEATER_CRON_SECRET) {
+    header('HTTP/1.0 401 Unauthorized');
+    echo "Unauthorized.";
+    exit;
+}
+
 $webpage = new WTWebpage();
 
 $link = $webpage->getDbh();
