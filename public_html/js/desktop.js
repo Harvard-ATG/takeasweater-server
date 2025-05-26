@@ -15,7 +15,7 @@ function jQueryReady() {
     $('#weather_search').append('<p><input type="submit" id="downloaddata" name="f" value="Download Results"  /></p>\
                                  <p><a href="https://docs.google.com/document/d/1qsTglCP5s9bkcGlonW9wsdsUwOEZPSswZEfTbqT1lV4/edit" \
                                     rel="external" target="_blank">Explanation of the Download File</a>.</p>');
-    
+
     // Add change event to location dropdown
     $('#location_code').change(function() {
         // When city changes, reload date range and weather data
@@ -62,16 +62,16 @@ function reloadDateRangeAndWeather() {
         } else {
             // Initialize datepicker for the first time
             $("#datepicker").datepicker({
-                changeMonth: true,
-                changeYear: true,
-                showOn: "button",
-                buttonImage: "images/calendar.gif",
-                buttonImageOnly: true,
-                dateFormat: 'yy-mm-dd',
+            changeMonth: true,
+            changeYear: true,
+            showOn: "button",
+            buttonImage: "images/calendar.gif",
+            buttonImageOnly: true,
+            dateFormat: 'yy-mm-dd',
                 minDate: minDate,
                 maxDate: maxDate,
-                onSelect: function(dateText, inst) {
-                    loadWeatherGraph();
+            onSelect: function(dateText, inst) {
+                     loadWeatherGraph();
                 }
             });
         }
@@ -85,36 +85,36 @@ function reloadDateRangeAndWeather() {
 
         // Initialize sliders and accordion (this part can remain mostly as is)
         $( "#date_slider" ).slider({
-            value: 10,
-            min: 0,
-            max: 15,
-            step: 1,
-            slide: function( event, ui ) {
-                $( "#date_amount" ).html( ui.value );
-            },
-            stop: function( event, ui ) {
-                 $('#date_tolerance').attr('value', ui.value);
-                 loadWeatherGraph();
-            }
-        });
+                    value: 10,
+                    min: 0,
+                    max: 15,
+                    step: 1,
+                    slide: function( event, ui ) {
+                        $( "#date_amount" ).html( ui.value );
+                    },
+                    stop: function( event, ui ) {
+                         $('#date_tolerance').attr('value', ui.value);
+                         loadWeatherGraph();
+                    }
+                });
         $( "#temp_slider" ).slider({
-            value: 5,
-            min: 0,
-            max: 10,
-            step: 1,
-            slide: function( event, ui ) {
-                $( "#temp_amount" ).html( ui.value );
-            },
-            stop: function( event, ui ) {
-                 $('#temp_tolerance').attr('value', ui.value);
-                 loadWeatherGraph();
-            }
-        });
+                    value: 5,
+                    min: 0,
+                    max: 10,
+                    step: 1,
+                    slide: function( event, ui ) {
+                        $( "#temp_amount" ).html( ui.value );
+                    },
+                    stop: function( event, ui ) {
+                         $('#temp_tolerance').attr('value', ui.value);
+                         loadWeatherGraph();
+                    }
+                });
         $( "#accordion" ).accordion({
-            collapsible: true,
-            autoHeight: false,
-            active: false
-        });
+                    collapsible: true,
+                    autoHeight: false,
+                    active: false
+                });
 
         // Initial graph load after datepicker is set up
         loadWeatherGraph();

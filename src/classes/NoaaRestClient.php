@@ -6,6 +6,9 @@
  * It handles all API communication, response parsing, and data transformation to match
  * the format expected by the existing application.
  */
+
+require_once('WeatherIconMapper.php');
+
 class NoaaRestClient {
     private $baseUrl = 'https://api.weather.gov';
     private $userAgent = 'TakeASweaterApp/1.0 (https://takeasweater.com, contact@takeasweater.com)';
@@ -191,6 +194,7 @@ class NoaaRestClient {
         $days = [];
         $dayNames = [];
         $icons = [];
+        $iconNames = [];
         $texts = [];
         $highs = [];
         $lows = [];
@@ -207,7 +211,8 @@ class NoaaRestClient {
                 $days[$date] = [
                     'high' => null,
                     'low' => null,
-                    'icon' => null, // Will be filled by daytime period or default
+                    'icon_url' => null,
+                    'icon_name' => null,
                     'text' => null,
                     'name' => null
                 ];
@@ -216,31 +221,33 @@ class NoaaRestClient {
             
             if ($period['isDaytime']) {
                 $days[$date]['high'] = $period['temperature'];
-                $days[$date]['icon'] = $period['icon']; // Use direct API URL
+                $days[$date]['icon_url'] = $period['icon'];
+                
+                $iconName = WeatherIconMapper::mapNoaaRestApiUrl($period['icon']);
+                $days[$date]['icon_name'] = $iconName;
+                
                 $days[$date]['text'] = $period['shortForecast'];
                 $days[$date]['name'] = $period['name'];
             } else {
                 $days[$date]['low'] = $period['temperature'];
-                // If this is the first period for the day and it's nighttime,
-                // we might not have a daytime icon yet. We can assign the night icon
-                // or let the default fill it later if no day icon appears.
-                if ($days[$date]['icon'] === null) {
-                    // $days[$date]['icon'] = $period['icon']; // Optionally use night icon if no day icon
+                if ($days[$date]['icon_name'] === null) {
+                    $iconName = WeatherIconMapper::mapNoaaRestApiUrl($period['icon']);
+                    $days[$date]['icon_name'] = $iconName;
+                    $days[$date]['icon_url'] = $period['icon'];
                 }
             }
         }
         
         while (count($days) < $numDays) {
             $lastDate = end($dates);
-            // Ensure $lastDate is a valid date string before using strtotime
             $nextDateTimestamp = $lastDate ? strtotime($lastDate . ' +1 day') : strtotime('today +1 day');
             $nextDate = date('Y-m-d', $nextDateTimestamp);
             
             $days[$nextDate] = [
                 'high' => rand(65, 85),
                 'low' => rand(45, 60),
-                // Use a generic default icon URL from the API
-                'icon' => 'https://api.weather.gov/icons/land/day/sct?size=medium', 
+                'icon_url' => 'https://api.weather.gov/icons/land/day/sct?size=medium', 
+                'icon_name' => 'few',
                 'text' => 'Partly Cloudy',
                 'name' => date('l', strtotime($nextDate))
             ];
@@ -250,8 +257,8 @@ class NoaaRestClient {
         foreach ($days as $date => $data) {
             $highs[] = $data['high'] ?? 70;
             $lows[] = $data['low'] ?? 50;
-            // Ensure there's always an icon, even if it's a default from placeholder days
-            $icons[] = $data['icon'] ?? 'https://api.weather.gov/icons/land/day/sct?size=medium'; 
+            $icons[] = $data['icon_url'] ?? 'https://api.weather.gov/icons/land/day/sct?size=medium'; 
+            $iconNames[] = $data['icon_name'] ?? 'few';
             $texts[] = $data['text'] ?? '';
             $dayNames[] = $data['name'] ?? '';
         }
@@ -268,6 +275,9 @@ class NoaaRestClient {
                     ],
                     'conditions-icon' => [
                         'icon-link' => $icons
+                    ],
+                    'icon-names' => [
+                        'names' => $iconNames
                     ]
                 ],
                 'time-layout' => [

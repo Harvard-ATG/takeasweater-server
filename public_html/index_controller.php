@@ -96,6 +96,7 @@ if ( $function == 'current' ) {
     $predictedHighs = isset($predictedTemps["highs"]) ? $predictedTemps["highs"] : [];
     $predictedLows = isset($predictedTemps["lows"]) ? $predictedTemps["lows"] : [];
     $predictedIcons = isset($predictedTemps["icons"]) ? $predictedTemps["icons"] : [];
+    $predictedIconNames = isset($predictedTemps["icon_names"]) ? $predictedTemps["icon_names"] : [];
     $predictedTexts = isset($predictedTemps["text"]) ? $predictedTemps["text"] : [];
 
     $data = array();
@@ -158,7 +159,11 @@ if ( $function == 'current' ) {
 
             $data["$days_out"]["predicted_high"]   = $predictedHighs[$days_out];
             $data["$days_out"]["predicted_low"]    = $predictedLows[$days_out];
-            $data["$days_out"]["icon"]             = $predictedIcons[$days_out]; // Corrected icon path
+            
+            // Use icon name to create local path, fallback to default if not available
+            $iconName = isset($predictedIconNames[$days_out]) ? $predictedIconNames[$days_out] : 'few';
+            $data["$days_out"]["icon"]             = 'images/' . $iconName . '.png';
+            
             $data["$days_out"]["text"]             = $predictedTexts[$days_out];
             $data["$days_out"]["histogram_lows"]   = $histogram_lows;
             $data["$days_out"]["histogram_highs"]  = $histogram_highs;
