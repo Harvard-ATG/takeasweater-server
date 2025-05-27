@@ -96,9 +96,8 @@ if ( $function == 'current' ) {
     $predictedHighs = isset($predictedTemps["highs"]) ? $predictedTemps["highs"] : [];
     $predictedLows = isset($predictedTemps["lows"]) ? $predictedTemps["lows"] : [];
     $predictedIcons = isset($predictedTemps["icons"]) ? $predictedTemps["icons"] : [];
-    $predictedIconNames = isset($predictedTemps["icon_names"]) ? $predictedTemps["icon_names"] : [];
     $predictedTexts = isset($predictedTemps["text"]) ? $predictedTemps["text"] : [];
-
+    $predictedIconNames = isset($predictedTemps["icon_names"]) ? $predictedTemps["icon_names"] : [];
     $data = array();
     $highestHigh = -100;
     $lowestLow   = 150;
@@ -110,8 +109,9 @@ if ( $function == 'current' ) {
             // This helps prevent errors if getPredictedTemps returns fewer than 6 days
             $data["$days_out"]["predicted_high"]   = null; // Or some default, e.g., 'N/A'
             $data["$days_out"]["predicted_low"]    = null;
-            $data["$days_out"]["icon"]             = 'images/few.png'; // Default icon
+            $data["$days_out"]["icon"]             = 'images/few.png'; // Default icon   
             $data["$days_out"]["text"]             = 'No data';
+            $data["$days_out"]["icon_names"]             = 'image/few.png'; // 
         } else {
             $histogram_highs = array();
             $histogram_lows = array();
@@ -159,11 +159,8 @@ if ( $function == 'current' ) {
 
             $data["$days_out"]["predicted_high"]   = $predictedHighs[$days_out];
             $data["$days_out"]["predicted_low"]    = $predictedLows[$days_out];
-            
-            // Use icon name to create local path, fallback to default if not available
-            $iconName = isset($predictedIconNames[$days_out]) ? $predictedIconNames[$days_out] : 'few';
-            $data["$days_out"]["icon"]             = 'images/' . $iconName . '.png';
-            
+            // $data["$days_out"]["icon"]             = $predictedIcons[$days_out]; // Corrected icon path
+            $data["$days_out"]["icon"]       = 'images/'.$predictedIconNames[$days_out].'.png'; // 
             $data["$days_out"]["text"]             = $predictedTexts[$days_out];
             $data["$days_out"]["histogram_lows"]   = $histogram_lows;
             $data["$days_out"]["histogram_highs"]  = $histogram_highs;
