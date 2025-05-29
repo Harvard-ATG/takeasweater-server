@@ -4,6 +4,7 @@
 require_once('../src/config.php');
 require_once('../src/classes/db.php');
 require_once('../src/classes/NoaaRestClient.php');
+require_once('../src/classes/WeatherIconMapper.php');
 
 /**
  * Debug output function
@@ -88,6 +89,7 @@ while($row = mysqli_fetch_assoc($result)) {
     $lows = $data['data']['parameters']['temperature'][1]['value'];
     $text = $data['data']['parameters']['weather']['weather-conditions'];
     $icons = $data['data']['parameters']['conditions-icon']['icon-link'];
+    $iconNames = $data['data']['parameters']['icon-names']['names'];
     $dates = $data['data']['time-layout'][0]['start-valid-time'];
 
     // DEBUG: Output the extracted data elements to see their structure
@@ -97,6 +99,7 @@ while($row = mysqli_fetch_assoc($result)) {
         'lows' => $lows,
         'text' => $text,
         'icons' => $icons,
+        'icon_names' => $iconNames,
         'dates' => $dates
     ];
     debug_output("Extracted data elements for $code", $debug_data, "extracted_data.json");
@@ -121,8 +124,8 @@ while($row = mysqli_fetch_assoc($result)) {
     // Prepare the insert statement
     $query_insert = "INSERT INTO noaa_weather 
                 (location_code, time_retrieved, forecast_create_date, forecast_for_date,
-                 forecast_days_out, forecast_high, forecast_low, fc_text, fc_icon_url)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                 forecast_days_out, forecast_high, forecast_low, fc_text, fc_icon_url, icon_name)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                  
     $stmt_insert = mysqli_prepare($link, $query_insert);
     if (!$stmt_insert) {
@@ -139,8 +142,9 @@ while($row = mysqli_fetch_assoc($result)) {
         // Extract conditions from text
         $conditions = isset($text[$i]) ? $text[$i] : '';
         
-        // Extract icon URL
+        // Extract icon URL and icon name
         $icon = isset($icons[$i]) ? $icons[$i] : '';
+        $iconName = isset($iconNames[$i]) ? $iconNames[$i] : 'few'; // Default to 'few' if no icon name
         
         // Calculate days out
         $days_out = (strtotime($date) - strtotime($today)) / (60 * 60 * 24);
@@ -153,12 +157,13 @@ while($row = mysqli_fetch_assoc($result)) {
                 'low' => $low,
                 'conditions' => $conditions,
                 'icon' => $icon,
+                'icon_name' => $iconName, // New: include icon name in debug
                 'days_out' => $days_out
             ];
         }
         
         // Bind parameters and execute
-        mysqli_stmt_bind_param($stmt_insert, "ssssiisss", 
+        mysqli_stmt_bind_param($stmt_insert, "ssssiissss", 
             $code,      // location_code (s)
             $now,       // time_retrieved (s)
             $today,     // forecast_create_date (s)
@@ -167,7 +172,8 @@ while($row = mysqli_fetch_assoc($result)) {
             $high,      // forecast_high (i)
             $low,       // forecast_low (i)
             $conditions,// fc_text (s)
-            $icon       // fc_icon_url (s)
+            $icon,      // fc_icon_url (s)
+            $iconName   // icon_name (s)
         );
 
         $insert_result = mysqli_stmt_execute($stmt_insert);

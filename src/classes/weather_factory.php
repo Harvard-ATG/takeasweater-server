@@ -132,7 +132,7 @@ class WTWeatherFactory {
 
         if ( $current ) {
             // When $current is true, fetch the latest forecast for today and the next few days
-            $query = sprintf("SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url
+            $query = sprintf("SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url, nw.icon_name
                          FROM noaa_weather as nw
                         WHERE nw.forecast_create_date = ( SELECT MAX(nw2.forecast_create_date) FROM noaa_weather AS nw2 WHERE nw2.location_code = '%s' )
                           AND nw.location_code = '%s'
@@ -140,7 +140,7 @@ class WTWeatherFactory {
                      LIMIT 6", $location_code, $location_code);
         } else {
             // When a date is selected from datepicker, fetch the forecast that was created on that specific date
-            $query = sprintf("SELECT forecast_high, forecast_low, fc_text, fc_icon_url
+            $query = sprintf("SELECT forecast_high, forecast_low, fc_text, fc_icon_url, icon_name
                          FROM noaa_weather  -- Corrected table
                         WHERE forecast_create_date = '%s'
                           AND location_code = '%s'
@@ -154,7 +154,8 @@ class WTWeatherFactory {
             'highs' => [],
             'lows' => [],
             'text' => [],
-            'icons' => []
+            'icons' => [],
+            'icon_names' => [] // New: array for standardized icon names
         );
         $result = mysqli_query($this->dbh, $query);
 
@@ -163,7 +164,17 @@ class WTWeatherFactory {
                 $data['highs'][] = $row[0];
                 $data['lows'][]  = $row[1];
                 $data['text'][]  = $row[2];
-                $data['icons'][] = $row[3];
+                $data['icons'][] = $row[3]; // Keep original URLs for backward compatibility
+                
+                // Use icon name if available, otherwise fall back to mapping the URL
+                $iconName = $row[4]; // icon_name column
+                if (empty($iconName) && !empty($row[3])) {
+                    // Fallback: try to map the URL if icon_name is empty (for old data)
+                    require_once('WeatherIconMapper.php');
+                    $iconName = WeatherIconMapper::mapLegacySoapUrl($row[3]);
+                    error_log("Mapped legacy icon URL {$row[3]} to icon name: $iconName");
+                }
+                $data['icon_names'][] = $iconName ?: 'few'; // Default to 'few' if still empty
             }
         } else {
             error_log("Query failed: " . mysqli_error($this->dbh));
