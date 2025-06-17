@@ -132,23 +132,31 @@ class WTWeatherFactory {
 
         if ( $current ) {
             // When $current is true, fetch the latest forecast for today and the next few days
-            $query = sprintf("SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url, nw.icon_name
-                         FROM noaa_weather as nw
-                        WHERE nw.forecast_create_date = (SELECT MAX(nw2.forecast_create_date) FROM noaa_weather AS nw2 WHERE nw2.location_code = '%s')
-                          AND nw.location_code = '%s'
-                          AND nw.time_retrieved = (SELECT MAX(time_retrieved) FROM noaa_weather AS nw2 WHERE nw2.forecast_create_date = nw.forecast_create_date AND nw2.location_code = nw.location_code)
-                     ORDER BY nw.forecast_days_out ASC", $location_code, $location_code);
+            $query = "SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url, nw.icon_name
+                FROM noaa_weather as nw
+                WHERE nw.forecast_create_date = (SELECT MAX(nw2.forecast_create_date) FROM noaa_weather AS nw2 WHERE nw2.location_code = ?)
+                AND nw.location_code = ?
+                AND nw.time_retrieved = (SELECT MAX(time_retrieved) FROM noaa_weather AS nw2 WHERE nw2.forecast_create_date = nw.forecast_create_date AND nw2.location_code = nw.location_code)
+                ORDER BY nw.forecast_days_out ASC";
+
+            // Prepare statement
+            $stmt = mysqli_prepare($this->dbh, $query);
+            mysqli_stmt_bind_param($stmt, "ss", $location_code, $location_code);
         } else {
             // When a date is selected from datepicker, fetch the forecast that was created on that specific date
-            $query = sprintf("SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url, nw.icon_name
-                         FROM noaa_weather AS nw
-                        WHERE nw.forecast_create_date = '%s'
-                          AND nw.location_code = '%s'
-                          AND nw.time_retrieved = (SELECT MAX(time_retrieved) FROM noaa_weather AS nw2 WHERE nw2.forecast_create_date = nw.forecast_create_date AND nw2.location_code = nw.location_code)
-                     ORDER BY forecast_days_out ASC", $forecast_create_date, $location_code);
+            $query = "SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url, nw.icon_name
+                FROM noaa_weather AS nw
+                WHERE nw.forecast_create_date = ?
+                AND nw.location_code = ?
+                AND nw.time_retrieved = (SELECT MAX(time_retrieved) FROM noaa_weather AS nw2 WHERE nw2.forecast_create_date = nw.forecast_create_date AND nw2.location_code = nw.location_code)
+                ORDER BY forecast_days_out ASC";
+
+            // Prepare statement
+            $stmt = mysqli_prepare($this->dbh, $query);
+            mysqli_stmt_bind_param($stmt, "ss", $forecast_create_date, $location_code);
         }
 
-        error_log( "Query: " . $query);
+        error_log("Query prepared with params: location_code=$location_code" . ($current ? "" : ", forecast_create_date=$forecast_create_date"));
 
         $data = array(
             'highs' => [],
@@ -157,10 +165,12 @@ class WTWeatherFactory {
             'icons' => [],
             'icon_names' => [] // New: array for standardized icon names
         );
-        $result = mysqli_query($this->dbh, $query);
 
-        if($result) {
-            while($row = mysqli_fetch_array($result)) {
+        // Execute the prepared statement
+        if (mysqli_stmt_execute($stmt)) {
+            $result = mysqli_stmt_get_result($stmt);
+
+            while ($row = mysqli_fetch_array($result)) {
                 $data['highs'][] = $row[0];
                 $data['lows'][]  = $row[1];
                 $data['text'][]  = $row[2];
@@ -176,10 +186,13 @@ class WTWeatherFactory {
                 }
                 $data['icon_names'][] = $iconName ?: 'few'; // Default to 'few' if still empty
             }
+            mysqli_stmt_close($stmt);
         } else {
-            error_log("Query failed: " . mysqli_error($this->dbh));
+            error_log("Prepared statement execution failed: " . mysqli_stmt_error($stmt));
+            mysqli_stmt_close($stmt);
         }
-        error_log( "Predicted Temps Returned: " . var_export($data, 1) );
+
+        error_log("Predicted Temps Returned: " . var_export($data, 1));
         return $data;
     }
 
