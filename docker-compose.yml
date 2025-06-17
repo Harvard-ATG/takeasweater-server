@@ -51,6 +51,9 @@ services:
       - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
       - ./db/02_prepare_csv_data.sh:/docker-entrypoint-initdb.d/02_prepare_csv_data.sh
       - ./db/03_load_csv_data.sql:/docker-entrypoint-initdb.d/03_load_csv_data.sql
+      - ./db/04_add_icon_name_column.sql:/docker-entrypoint-initdb.d/04_add_icon_name_column.sql
+      - ./db/05_populate_historical_icon_names.sql:/docker-entrypoint-initdb.d/05_populate_historical_icon_names.sql
+      - ./db/06_fix_icon_patterns.sql:/docker-entrypoint-initdb.d/06_fix_icon_patterns.sql
       - db_data:/var/lib/mysql
     command: --secure-file-priv="/docker-entrypoint-initdb.d"
 
