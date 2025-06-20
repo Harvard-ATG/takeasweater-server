@@ -132,28 +132,62 @@ class WTWeatherFactory {
 
         if ( $current ) {
             // When $current is true, fetch the latest forecast for today and the next few days
-            $query = "SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url, nw.icon_name
-                FROM noaa_weather as nw
-                WHERE nw.forecast_create_date = (SELECT MAX(nw2.forecast_create_date) FROM noaa_weather AS nw2 WHERE nw2.location_code = ?)
-                AND nw.location_code = ?
-                AND nw.time_retrieved = (SELECT MAX(time_retrieved) FROM noaa_weather AS nw2 WHERE nw2.forecast_create_date = nw.forecast_create_date AND nw2.location_code = nw.location_code)
-                ORDER BY nw.forecast_days_out ASC";
+            $query = <<<'SQL'
+WITH latest AS (
+    SELECT
+        location_code,
+        MAX(forecast_create_date) AS max_forecast_create_date
+    FROM noaa_weather
+    WHERE location_code = ?
+    GROUP BY location_code
+), latest_time AS (
+    SELECT
+        location_code,
+        forecast_create_date,
+        MAX(time_retrieved) AS max_tr
+    FROM noaa_weather
+    WHERE location_code = ?
+      AND forecast_create_date = (SELECT max_forecast_create_date FROM latest)
+    GROUP BY location_code, forecast_create_date
+)
+SELECT
+    nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url, nw.icon_name
+FROM
+    noaa_weather nw
+    JOIN latest_time lt ON
+       nw.location_code = lt.location_code
+       AND nw.forecast_create_date = lt.forecast_create_date
+       AND nw.time_retrieved = lt.max_tr
+ORDER BY
+    nw.forecast_days_out ASC
+SQL;
 
             // Prepare statement
             $stmt = mysqli_prepare($this->dbh, $query);
             mysqli_stmt_bind_param($stmt, "ss", $location_code, $location_code);
         } else {
             // When a date is selected from datepicker, fetch the forecast that was created on that specific date
-            $query = "SELECT nw.forecast_high, nw.forecast_low, nw.fc_text, nw.fc_icon_url, nw.icon_name
-                FROM noaa_weather AS nw
-                WHERE nw.forecast_create_date = ?
-                AND nw.location_code = ?
-                AND nw.time_retrieved = (SELECT MAX(time_retrieved) FROM noaa_weather AS nw2 WHERE nw2.forecast_create_date = nw.forecast_create_date AND nw2.location_code = nw.location_code)
-                ORDER BY forecast_days_out ASC";
+            $query = <<<'SQL'
+WITH latest_time AS (SELECT MAX(time_retrieved) AS max_tr
+                     FROM noaa_weather
+                     WHERE forecast_create_date = ?
+                       AND location_code = ?)
+SELECT nw.forecast_high,
+       nw.forecast_low,
+       nw.fc_text,
+       nw.fc_icon_url,
+       nw.icon_name
+FROM noaa_weather nw
+         CROSS JOIN latest_time lt
+WHERE nw.forecast_create_date = ?
+  AND nw.location_code = ?
+  AND nw.time_retrieved = lt.max_tr
+ORDER BY nw.forecast_days_out ASC
+SQL;
 
             // Prepare statement
             $stmt = mysqli_prepare($this->dbh, $query);
-            mysqli_stmt_bind_param($stmt, "ss", $forecast_create_date, $location_code);
+            mysqli_stmt_bind_param($stmt, "ssss", $forecast_create_date, $location_code, $forecast_create_date, $location_code);
         }
 
         error_log("Query prepared with params: location_code=$location_code" . ($current ? "" : ", forecast_create_date=$forecast_create_date"));

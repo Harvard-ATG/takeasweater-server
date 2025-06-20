@@ -59,6 +59,9 @@ create table takeasweater.noaa_weather
 create index forecast_create_date
     on takeasweater.noaa_weather (forecast_create_date);
 
+create index location_forecast_create_time
+    on takeasweater.noaa_weather (location_code, forecast_create_date, time_retrieved);
+
 create index forecast_days_out
     on takeasweater.noaa_weather (forecast_days_out);
 
@@ -212,4 +215,3 @@ create table takeasweater.wind_codes
 )
     engine = MyISAM
     charset = utf8mb3;
-
